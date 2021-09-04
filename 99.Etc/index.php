@@ -2,6 +2,11 @@
 <head><title>Welcome Web Page</title></head>
 <body>
 <h1>Welcome Web Page</h1>
+<?
+    $hostname = $_SERVER["HTTP_HOST"]
+    echo "Hostname : "; 
+    echo $hostname."<br>";
+?>
 <?php
     $dbserver = "CLOUDSQLIP";
     $dbuser = "blogdbuser";
