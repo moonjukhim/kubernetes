@@ -1,15 +1,15 @@
-apiVersion: app/v1
+apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
-  name: ingress-svc
+  name: ingress-app
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /
     kubernetes.io/ingress.global-static-ip-name: "global-ingress"
 spec:
   rules:
   - http:
-      Paths:
-     - path: /v1
+      paths:
+      - path: /v1
         backend:
           serviceName: my-service
           servicePort: 80
