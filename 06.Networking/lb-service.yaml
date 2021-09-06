@@ -4,9 +4,9 @@ metadata:
   name: lb-service
 spec:
   type: LoadBalancer
-  loadBalancerIP: 35.232.27.7  # 할당 받은 고정 외부 IP로 변경해야 함!!!
+  #loadBalancerIP: 35.232.27.7  # 할당 받은 고정 외부 IP로 변경해야 함!!!
   selector:
-    app: nginx
+    app: app-v2
   ports:
   - protocol: TCP
     port: 80
