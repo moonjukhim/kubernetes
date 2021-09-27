@@ -7,6 +7,7 @@ export my_zone=us-central1-a
 export my_cluster=my-cluster1
 gcloud container clusters create $my_cluster --num-nodes 3 --zone $my_zone --enable-ip-alias
 gcloud container clusters get-credentials $my_cluster --zone $my_zone
+git clone https://github.com/moonjukhim/kubernetes.git
 ```
 
 User A : 네임스페이스 생성하기
@@ -22,4 +23,5 @@ user B : 접속 정보 가져오기
 export my_zone=us-central1-a
 export my_cluster=standard-cluster-1
 gcloud container clusters get-credentials $my_cluster --zone $my_zone
+git clone https://github.com/moonjukhim/kubernetes.git
 ```
