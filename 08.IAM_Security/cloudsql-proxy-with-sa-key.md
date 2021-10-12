@@ -11,12 +11,9 @@ gcloud sql instances describe $SQL_NAME
 
 ```bash
 export my_zone=us-central1-a
-export my_cluster=my-cluster1
+export my_cluster=my-cluster-1
 export PROJECT_ID=$(gcloud config get-value core/project) 
-export KSA="ksa-for-cloudsql"
-export GSA="gsa-for-gke"
-gcloud container clusters create $my_cluster --num-nodes 3 --zone $my_zone \
-  --scopes=sql-admin,default \
+gcloud container clusters create $my_cluster --num-nodes 3 --zone $my_zone 
 ```
 
 2. DB에 접속하기 위한 시크릿 생성
