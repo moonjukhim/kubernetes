@@ -26,7 +26,7 @@ export PROJECT_ID=$(gcloud config get-value core/project)
 export KSA="ksa-for-cloudsql"
 export GSA="gsa-for-gke"
 gcloud container clusters create $my_cluster --num-nodes 3 --zone $my_zone \
-  --scopes=sql-admin,default  
+  --workload-pool=${PROJECT_ID}.svc.id.goog 
 
 #gcloud container clusters update ${my_cluster} \
 # --workload-pool=${PROJECT_ID}.svc.id.goog \
@@ -76,6 +76,10 @@ kubectl annotate serviceaccount \
 gcloud projects add-iam-policy-binding ${PROJECT_ID} \
 --member=serviceAccount:${GSA}@${PROJECT_ID}.iam.gserviceaccount.com \
 --role=roles/cloudsql.client
+
+gcloud projects add-iam-policy-binding ${PROJECT_ID} \
+--member=serviceAccount:${GSA}@${PROJECT_ID}.iam.gserviceaccount.com \
+--role=roles/cloudsql.admin
 ```
 
 7. 테스트
