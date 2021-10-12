@@ -1,3 +1,5 @@
+# https://cloud.google.com/sql/docs/mysql/connect-kubernetes-engine
+---
 0. Cloud SQL 인스턴스 생성
 
 ```bash
@@ -26,7 +28,8 @@ export PROJECT_ID=$(gcloud config get-value core/project)
 export KSA="ksa-for-cloudsql"
 export GSA="gsa-for-gke"
 gcloud container clusters create $my_cluster --num-nodes 3 --zone $my_zone \
-  --workload-pool=${PROJECT_ID}.svc.id.goog 
+  --workload-pool=${PROJECT_ID}.svc.id.goog \
+  --scopes=sql; --service-account=sql-access@fluent-optics-321005.iam.gserviceaccount.com
 
 #gcloud container clusters update ${my_cluster} \
 # --workload-pool=${PROJECT_ID}.svc.id.goog \
@@ -79,7 +82,7 @@ gcloud projects add-iam-policy-binding ${PROJECT_ID} \
 
 gcloud projects add-iam-policy-binding ${PROJECT_ID} \
 --member=serviceAccount:${GSA}@${PROJECT_ID}.iam.gserviceaccount.com \
---role=roles/cloudsql.admin
+--role=roles/iam.workloadIdentityUser
 ```
 
 7. 테스트
