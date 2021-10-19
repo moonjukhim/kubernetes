@@ -26,6 +26,7 @@ gcloud container clusters create $CLUSTER \
    --zone $ZONE \
    --scopes $SCOPE \
    --enable-autoscaling --min-nodes "1" --max-nodes "3" \
+   --num-nodes 1 \
    --scopes=logging-write,storage-ro \
    --addons HorizontalPodAutoscaling,HttpLoadBalancing
 
@@ -60,5 +61,11 @@ kubectl get services
 kubectl get svc locust-master --watch
 EXTERNAL_IP=$(kubectl get svc locust-master -o jsonpath="{.status.loadBalancer.ingress[0].ip}")
 ```
+
+
+```bash
+kubectl scale deployment/locust-worker --replicas=30
+```
+
 
 https://cloud.google.com/architecture/distributed-load-testing-using-gke
