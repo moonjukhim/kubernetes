@@ -47,6 +47,13 @@ gcloud container images list | grep locust-tasks
 5. 샘플 애플리케이션 배포
 
 ```bash
+gcloud app deploy sample-webapp/app.yaml \
+  --project=$PROJECT
+```
+
+6. Locust 마스터 및 워커 노드 배포
+
+```bash
 sed -i -e "s/\[TARGET_HOST\]/$TARGET/g" kubernetes-config/locust-master-controller.yaml
 sed -i -e "s/\[TARGET_HOST\]/$TARGET/g" kubernetes-config/locust-worker-controller.yaml
 sed -i -e "s/\[PROJECT_ID\]/$PROJECT/g" kubernetes-config/locust-master-controller.yaml
@@ -62,9 +69,10 @@ kubectl get svc locust-master --watch
 EXTERNAL_IP=$(kubectl get svc locust-master -o jsonpath="{.status.loadBalancer.ingress[0].ip}")
 ```
 
+7. 사용자 수 확장
 
 ```bash
-kubectl scale deployment/locust-worker --replicas=30
+kubectl scale deployment/locust-worker --replicas=20
 ```
 
 
