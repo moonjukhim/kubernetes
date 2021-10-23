@@ -1,0 +1,1 @@
+https://www.containiq.com/post/kubernetes-readiness-probe
