@@ -3,9 +3,9 @@
 0. Cloud SQL 인스턴스 생성
 
 ```bash
-gcloud sql instances create my-instance1 --tier=db-n1-standard-2 --region=us-central1
-export SQL_NAME=my-instance1
-gcloud sql connect my-instance1
+export SQL_NAME=my-instance01
+gcloud sql instances create $SQL_NAME --tier=db-n1-standard-2 --region=us-central1
+gcloud sql connect $SQL_NAME
 gcloud sql instances describe INSTANCE_ID
 ```
 
@@ -23,7 +23,7 @@ gcloud iam service-accounts create gsa-for-gke \
 
 ```bash
 export my_zone=us-central1-a
-export my_cluster=my-cluster2
+export my_cluster=my-cluster1
 export PROJECT_ID=$(gcloud config get-value core/project) 
 export KSA="ksa-for-cloudsql"
 export GSA="gsa-for-gke"
