@@ -49,8 +49,7 @@ reviewsHostname = "reviews" if (os.environ.get("REVIEWS_HOSTNAME") is None) else
 
 
 productpage = {
-    "name": "http://{0}{1}:9080".format(detailsHostname, servicesDomain),
-    "endpoint": "details"
+    "name": "http://{0}{1}:9080".format(detailsHostname, servicesDomain)
 }
 
 
@@ -92,7 +91,6 @@ def productsRoute():
 
 
 @app.route('/api/v1/products/<product_id>')
-@trace()
 def productRoute(product_id):
     headers = getForwardHeaders(request)
     status, details = getProductDetails(product_id, headers)
