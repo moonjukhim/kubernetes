@@ -59,11 +59,12 @@ productpage = {
 def index():
     """ Display productpage with normal user and test user buttons"""
     global productpage
+    model = {"title": "Hello Kubernetes"}
 
     table = json2html.convert(json=json.dumps(productpage),
                               table_attributes="class=\"table table-condensed table-bordered table-hover\"")
 
-    return render_template('index.html', serviceTable=table)
+    return render_template('index.html', model=model)
 
 
 
