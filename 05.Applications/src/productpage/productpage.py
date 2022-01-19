@@ -69,7 +69,6 @@ def index():
 
 
 @app.route('/productpage')
-@trace()
 def front():
     product_id = 0  # TODO: replace default value
     headers = getForwardHeaders(request)
