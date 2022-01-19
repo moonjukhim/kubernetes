@@ -1,18 +1,5 @@
 #!/bin/bash
 #
-# Copyright Istio Authors
-#
-#   Licensed under the Apache License, Version 2.0 (the "License");
-#   you may not use this file except in compliance with the License.
-#   You may obtain a copy of the License at
-#
-#       http://www.apache.org/licenses/LICENSE-2.0
-#
-#   Unless required by applicable law or agreed to in writing, software
-#   distributed under the License is distributed on an "AS IS" BASIS,
-#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#   See the License for the specific language governing permissions and
-#   limitations under the License.
 
 set -o errexit
 
@@ -28,16 +15,11 @@ SCRIPTDIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 
 pushd "$SCRIPTDIR/productpage"
   docker build --pull -t "${PREFIX}/examples-bookinfo-productpage-v1:${VERSION}" -t "${PREFIX}/examples-bookinfo-productpage-v1:latest" .
-  #flooding
-  docker build --pull -t "${PREFIX}/examples-bookinfo-productpage-v-flooding:${VERSION}" -t "${PREFIX}/examples-bookinfo-productpage-v-flooding:latest" --build-arg flood_factor=100 .
 popd
 
 pushd "$SCRIPTDIR/details"
   #plain build -- no calling external book service to fetch topics
   docker build --pull -t "${PREFIX}/examples-bookinfo-details-v1:${VERSION}" -t "${PREFIX}/examples-bookinfo-details-v1:latest" --build-arg service_version=v1 .
-  #with calling external book service to fetch topic for the book
-  docker build --pull -t "${PREFIX}/examples-bookinfo-details-v2:${VERSION}" -t "${PREFIX}/examples-bookinfo-details-v2:latest" --build-arg service_version=v2 \
-	 --build-arg enable_external_book_service=true .
 popd
 
 pushd "$SCRIPTDIR/reviews"
