@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request
 app = Flask(__name__)
-@app.route("/")
 
+@app.route("/")
 def main():
     model = {"title": "Hello Kubernetes"}
     return render_template('index.html', model=model)
