@@ -50,8 +50,7 @@ reviewsHostname = "reviews" if (os.environ.get("REVIEWS_HOSTNAME") is None) else
 
 productpage = {
     "name": "http://{0}{1}:9080".format(detailsHostname, servicesDomain),
-    "endpoint": "details",
-    "children": [details, reviews]
+    "endpoint": "details"
 }
 
 
