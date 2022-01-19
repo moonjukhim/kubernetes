@@ -12,7 +12,7 @@ gcloud container clusters get-credentials $CLUSTER_NAME \
 docker build -t gcr.io/$PROJECT_ID/app:v1 .
 docker push gcr.io/$PROEJCT_ID/app:v1
 
-# kubectl create deployment app --image=gcr.io/$PROJECT_ID/app:v1
+kubectl create deployment app --image=gcr.io/$PROJECT_ID/app:v1
 kubectl exec --stdin --tty [POD_NAME] -- /bin/bash
 
 # kubectl exec -it $(kubectl get pod -l app=ratings \
