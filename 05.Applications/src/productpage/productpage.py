@@ -1,7 +1,6 @@
 #!/usr/bin/python
 #
 
-
 from __future__ import print_function
 from flask_bootstrap import Bootstrap
 from flask import Flask, request, session, render_template, redirect, url_for
@@ -85,12 +84,7 @@ def front():
     reviewsStatus, reviews = getProductReviews(product_id, headers)
     return render_template(
         'productpage.html',
-        detailsStatus=detailsStatus,
-        reviewsStatus=reviewsStatus,
-        product=product,
-        details=details,
-        reviews=reviews,
-        user=user)
+        product=product)
 
 
 # The API:
