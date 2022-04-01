@@ -1,8 +1,4 @@
-# 쿠버네티스
+#### 쿠버네티스를 활용한 마이크로서비스 개발
 
-- 1. 
----
+1. 
 
-```bash
-git clone https://github.com/moonjukhim/kubernetes.git
-```
