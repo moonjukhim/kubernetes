@@ -1,6 +1,0 @@
-apt-get update
-apt-get install apache2 php php-mysql -y
-service apache2 restart
-
-
-https://stackoverflow.com/questions/63664800/how-to-access-files-in-google-cloud-storage-through-gke-pods
