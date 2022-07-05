@@ -44,7 +44,7 @@ spec:
       serviceAccountName: productinfo-details
       containers:
         - name: details
-          image: docker.io/istio/examples-bookinfo-details-v1:1.16.4
+          image: moonjukhim/productinfo-details-v1:1.0.0
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 9080
@@ -94,10 +94,10 @@ spec:
         app: ratings
         version: v1
     spec:
-      serviceAccountName: bookinfo-ratings
+      serviceAccountName: productinfo-ratings
       containers:
         - name: ratings
-          image: docker.io/istio/examples-bookinfo-ratings-v1:1.16.4
+          image: moonjukhim/productinfo-ratings-v1:1.0.0
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 9080
@@ -150,7 +150,7 @@ spec:
       serviceAccountName: productinfo-reviews
       containers:
         - name: reviews
-          image: docker.io/istio/examples-bookinfo-reviews-v1:1.16.4
+          image: moonjukhim/productinfo-reviews-v1:1.0.0
           imagePullPolicy: IfNotPresent
           env:
             - name: LOG_DIR
@@ -189,10 +189,10 @@ spec:
         app: reviews
         version: v2
     spec:
-      serviceAccountName: bookinfo-reviews
+      serviceAccountName: productinfo-reviews
       containers:
         - name: reviews
-          image: docker.io/istio/examples-bookinfo-reviews-v2:1.16.4
+          image: moonjukhim/productinfo-reviews-v2:1.0.0
           imagePullPolicy: IfNotPresent
           env:
             - name: LOG_DIR
@@ -231,10 +231,10 @@ spec:
         app: reviews
         version: v3
     spec:
-      serviceAccountName: bookinfo-reviews
+      serviceAccountName: productinfo-reviews
       containers:
         - name: reviews
-          image: docker.io/istio/examples-bookinfo-reviews-v3:1.16.4
+          image: moonjukhim/productinfo-reviews-v3:1.0.0
           imagePullPolicy: IfNotPresent
           env:
             - name: LOG_DIR
