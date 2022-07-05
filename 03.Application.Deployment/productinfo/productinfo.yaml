@@ -300,7 +300,7 @@ spec:
       serviceAccountName: productinfo-productpage
       containers:
         - name: productpage
-          image: moonjukhim/productinfo-v1:1.0.0
+          image: moonjukhim/productinfo-productpage-v1:1.0.0
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 9080
