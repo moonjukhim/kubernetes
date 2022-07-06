@@ -6,6 +6,7 @@ eksctl create cluster \
 --nodes 3 \
 --nodes-min 1 \
 --nodes-max 4 \
+--managed \
 --version 1.21 \
 --region ${AWS_REGION}
 ```
