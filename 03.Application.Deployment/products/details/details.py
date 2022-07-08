@@ -156,37 +156,80 @@ def getForwardHeaders(request):
     return headers
 
 
-# The UI:
-# @app.route('/')
-# @app.route('/index.html')
-# def index():
-#    """ Display productpage with normal user and test user buttons"""
-#    global productpage
-#
-#    table = json2html.convert(json=json.dumps(productpage),
-#                              table_attributes="class=\"table table-condensed table-bordered table-hover\"")
-#
-#    return render_template('index.html', serviceTable=table)
-
-
+# UI
 @app.route('/')
 def front():
-    return [
-        {
-            'type': 'paperback',
-            'pages': '200',
-            'publisher': 'PublisherA',
-            'language': 'English',
-            'ISBN-10': '1234567890',
-            'ISBN-13': '123-4567890'
-        }
-    ]
+    return json.dumps(getProducts()), 200, {'Content-Type': 'application/json'}
 
 
 @app.route('/health')
 def health():
-    return 'Product page is healthy'
+    return 'detail page is healthy'
 
+
+# The API:
+@app.route('/api/v1/products')
+def productsRoute():
+    return json.dumps(getProducts()), 200, {'Content-Type': 'application/json'}
+
+
+@app.route('/products/<product_id>')
+@trace()
+def productRoute(product_id):
+    headers = getForwardHeaders(request)
+    status, details = getProductDetails(product_id, headers)
+    return json.dumps(details), status, {'Content-Type': 'application/json'}
+
+
+@app.route('/api/v1/products/<product_id>/reviews')
+@trace()
+def reviewsRoute(product_id):
+    headers = getForwardHeaders(request)
+    status, reviews = getProductReviews(product_id, headers)
+    return json.dumps(reviews), status, {'Content-Type': 'application/json'}
+
+
+@app.route('/api/v1/products/<product_id>/ratings')
+@trace()
+def ratingsRoute(product_id):
+    headers = getForwardHeaders(request)
+    status, ratings = getProductRatings(product_id, headers)
+    return json.dumps(ratings), status, {'Content-Type': 'application/json'}
+
+
+#################################################################################
+# Data providers:
+def getProducts():
+    return [
+        {
+            'id': 0,
+            'title': 'The Comedy of Errors',
+            'descriptionHtml': '<a href="https://en.wikipedia.org/wiki/The_Comedy_of_Errors">Wikipedia Summary</a>: The Comedy of Errors is one of <b>William Shakespeare\'s</b> early plays. It is his shortest and one of his most farcical comedies, with a major part of the humour coming from slapstick and mistaken identity, in addition to puns and word play.'
+        }
+    ]
+
+
+def getProduct(product_id):
+    products = getProducts()
+    if product_id + 1 > len(products):
+        return None
+    else:
+        return products[product_id]
+
+
+def getProductDetails(product_id, headers):
+    try:
+        url = details['name'] + "/" + details['endpoint'] + "/" + str(product_id)
+        res = requests.get(url, headers=headers, timeout=3.0)
+    except BaseException:
+        res = None
+    if res and res.status_code == 200:
+        return 200, res.json()
+    else:
+        status = res.status_code if res is not None and res.status_code else 500
+        return status, {'error': 'Sorry, product details are currently unavailable for this book.'}
+
+#################################################################################
 
 class Writer(object):
     def __init__(self, filename):
