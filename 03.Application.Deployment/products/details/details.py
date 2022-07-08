@@ -207,9 +207,15 @@ def ratingsRoute(product_id):
 def getProducts():
     return 200, [
         {
-            'id': 0,
-            'title': 'The Comedy of Errors',
-            'descriptionHtml': '<a href="https://en.wikipedia.org/wiki/The_Comedy_of_Errors">Wikipedia Summary</a>: The Comedy of Errors is one of <b>William Shakespeare\'s</b> early plays. It is his shortest and one of his most farcical comedies, with a major part of the humour coming from slapstick and mistaken identity, in addition to puns and word play.'
+            'id' => id,
+            'author': 'William Shakespeare',
+            'year': 1595,
+            'type' => 'paperback',
+            'pages' => 200,
+            'publisher' => 'PublisherA',
+            'language' => 'English',
+            'ISBN-10' => '1234567890',
+            'ISBN-13' => '123-1234567890'
         }
     ]
 
