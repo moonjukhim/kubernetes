@@ -162,6 +162,11 @@ def front():
     return json.dumps(getProducts()), 200, {'Content-Type': 'application/json'}
 
 
+@app.route('/details')
+def details():
+    return json.dumps(getProducts()), 200, {'Content-Type': 'application/json'}
+
+
 @app.route('/health')
 def health():
     return 'detail page is healthy'
@@ -173,7 +178,7 @@ def productsRoute():
     return json.dumps(getProducts()), 200, {'Content-Type': 'application/json'}
 
 
-@app.route('/products/<product_id>')
+@app.route('/api/v1/products/<product_id>')
 @trace()
 def productRoute(product_id):
     headers = getForwardHeaders(request)
@@ -200,7 +205,7 @@ def ratingsRoute(product_id):
 #################################################################################
 # Data providers:
 def getProducts():
-    return [
+    return 200, [
         {
             'id': 0,
             'title': 'The Comedy of Errors',
