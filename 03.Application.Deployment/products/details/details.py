@@ -157,19 +157,20 @@ def getForwardHeaders(request):
 
 
 # The UI:
+# @app.route('/')
+# @app.route('/index.html')
+# def index():
+#    """ Display productpage with normal user and test user buttons"""
+#    global productpage
+#
+#    table = json2html.convert(json=json.dumps(productpage),
+#                              table_attributes="class=\"table table-condensed table-bordered table-hover\"")
+#
+#    return render_template('index.html', serviceTable=table)
+
+
 @app.route('/')
-@app.route('/index.html')
-def index():
-    """ Display productpage with normal user and test user buttons"""
-    global productpage
-
-    table = json2html.convert(json=json.dumps(productpage),
-                              table_attributes="class=\"table table-condensed table-bordered table-hover\"")
-
-    return render_template('index.html', serviceTable=table)
-
-@app.route('/details')
-def details():
+def front():
     return [
         {
             'type': 'paperback',
@@ -185,155 +186,6 @@ def details():
 @app.route('/health')
 def health():
     return 'Product page is healthy'
-
-
-@app.route('/login', methods=['POST'])
-def login():
-    user = request.values.get('username')
-    response = app.make_response(redirect(request.referrer))
-    session['user'] = user
-    return response
-
-
-@app.route('/logout', methods=['GET'])
-def logout():
-    response = app.make_response(redirect(request.referrer))
-    session.pop('user', None)
-    return response
-
-# a helper function for asyncio.gather, does not return a value
-
-
-async def getProductReviewsIgnoreResponse(product_id, headers):
-    getProductReviews(product_id, headers)
-
-# flood reviews with unnecessary requests to demonstrate Istio rate limiting, asynchoronously
-
-
-async def floodReviewsAsynchronously(product_id, headers):
-    # the response is disregarded
-    await asyncio.gather(*(getProductReviewsIgnoreResponse(product_id, headers) for _ in range(flood_factor)))
-
-# flood reviews with unnecessary requests to demonstrate Istio rate limiting
-
-
-def floodReviews(product_id, headers):
-    loop = asyncio.new_event_loop()
-    loop.run_until_complete(floodReviewsAsynchronously(product_id, headers))
-    loop.close()
-
-
-@app.route('/productpage')
-@trace()
-def front():
-    product_id = 0  # TODO: replace default value
-    headers = getForwardHeaders(request)
-    user = session.get('user', '')
-    product = getProduct(product_id)
-    detailsStatus, details = getProductDetails(product_id, headers)
-
-    if flood_factor > 0:
-        floodReviews(product_id, headers)
-
-    reviewsStatus, reviews = getProductReviews(product_id, headers)
-    return render_template(
-        'productpage.html',
-        detailsStatus=detailsStatus,
-        reviewsStatus=reviewsStatus,
-        product=product,
-        details=details,
-        reviews=reviews,
-        user=user)
-
-
-# The API:
-@app.route('/api/v1/products')
-def productsRoute():
-    return json.dumps(getProducts()), 200, {'Content-Type': 'application/json'}
-
-
-@app.route('/api/v1/products/<product_id>')
-@trace()
-def productRoute(product_id):
-    headers = getForwardHeaders(request)
-    status, details = getProductDetails(product_id, headers)
-    return json.dumps(details), status, {'Content-Type': 'application/json'}
-
-
-@app.route('/api/v1/products/<product_id>/reviews')
-@trace()
-def reviewsRoute(product_id):
-    headers = getForwardHeaders(request)
-    status, reviews = getProductReviews(product_id, headers)
-    return json.dumps(reviews), status, {'Content-Type': 'application/json'}
-
-
-@app.route('/api/v1/products/<product_id>/ratings')
-@trace()
-def ratingsRoute(product_id):
-    headers = getForwardHeaders(request)
-    status, ratings = getProductRatings(product_id, headers)
-    return json.dumps(ratings), status, {'Content-Type': 'application/json'}
-
-
-# Data providers:
-def getProducts():
-    return [
-        {
-            'id': 0,
-            'title': 'The Comedy of Errors',
-            'descriptionHtml': '<a href="https://en.wikipedia.org/wiki/The_Comedy_of_Errors">Wikipedia Summary</a>: The Comedy of Errors is one of <b>William Shakespeare\'s</b> early plays. It is his shortest and one of his most farcical comedies, with a major part of the humour coming from slapstick and mistaken identity, in addition to puns and word play.'
-        }
-    ]
-
-
-def getProduct(product_id):
-    products = getProducts()
-    if product_id + 1 > len(products):
-        return None
-    else:
-        return products[product_id]
-
-
-def getProductDetails(product_id, headers):
-    try:
-        url = details['name'] + "/" + details['endpoint'] + "/" + str(product_id)
-        res = requests.get(url, headers=headers, timeout=3.0)
-    except BaseException:
-        res = None
-    if res and res.status_code == 200:
-        return 200, res.json()
-    else:
-        status = res.status_code if res is not None and res.status_code else 500
-        return status, {'error': 'Sorry, product details are currently unavailable for this book.'}
-
-
-def getProductReviews(product_id, headers):
-    # Do not remove. Bug introduced explicitly for illustration in fault injection task
-    # TODO: Figure out how to achieve the same effect using Envoy retries/timeouts
-    for _ in range(2):
-        try:
-            url = reviews['name'] + "/" + reviews['endpoint'] + "/" + str(product_id)
-            res = requests.get(url, headers=headers, timeout=3.0)
-        except BaseException:
-            res = None
-        if res and res.status_code == 200:
-            return 200, res.json()
-    status = res.status_code if res is not None and res.status_code else 500
-    return status, {'error': 'Sorry, product reviews are currently unavailable for this book.'}
-
-
-def getProductRatings(product_id, headers):
-    try:
-        url = ratings['name'] + "/" + ratings['endpoint'] + "/" + str(product_id)
-        res = requests.get(url, headers=headers, timeout=3.0)
-    except BaseException:
-        res = None
-    if res and res.status_code == 200:
-        return 200, res.json()
-    else:
-        status = res.status_code if res is not None and res.status_code else 500
-        return status, {'error': 'Sorry, product ratings are currently unavailable for this book.'}
 
 
 class Writer(object):
