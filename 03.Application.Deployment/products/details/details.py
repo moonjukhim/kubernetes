@@ -2,7 +2,7 @@
 
 from __future__ import print_function
 from flask_bootstrap import Bootstrap
-from flask import Flask, request, session, render_template, redirect, url_for
+from flask import Flask, request, session, render_template, redirect, url_for, jsonify
 from flask import _request_ctx_stack as stack
 from jaeger_client import Tracer, ConstSampler
 from jaeger_client.reporter import NullReporter
@@ -162,9 +162,9 @@ def front():
     return json.dumps(getProducts()), 200, {'Content-Type': 'application/json'}
 
 
-@app.route('/details')
+@app.route('/details/0')
 def details():
-    return json.dumps(getProducts()), 200, {'Content-Type': 'application/json'}
+    return make_response(jsonify(getProducts()), 200)
 
 
 @app.route('/health')
@@ -205,7 +205,8 @@ def ratingsRoute(product_id):
 #################################################################################
 # Data providers:
 def getProducts():
-    return 200, [
+    status_code = flask.Response(status=200)
+    return status_code, [
         {
             'id' => id,
             'author': 'William Shakespeare',
