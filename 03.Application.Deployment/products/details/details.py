@@ -2,7 +2,7 @@
 
 from __future__ import print_function
 from flask_bootstrap import Bootstrap
-from flask import Flask, request, session, render_template, redirect, url_for, jsonify
+from flask import Flask, request, session, render_template, redirect, url_for, jsonify, make_response
 from flask import _request_ctx_stack as stack
 from jaeger_client import Tracer, ConstSampler
 from jaeger_client.reporter import NullReporter
@@ -159,7 +159,7 @@ def getForwardHeaders(request):
 # UI
 @app.route('/')
 def front():
-    return json.dumps(getProducts()), 200, {'Content-Type': 'application/json'}
+    return make_response(jsonify(getProducts()), 200)
 
 
 @app.route('/details')
@@ -182,36 +182,30 @@ def productsRoute():
 #################################################################################
 # Data providers:
 def getProducts():
-    status_code = flask.Response(status=200)
-    return status_code, [
+    return [
         {
-            'id' => id,
+            'id' : 'id',
             'author': 'William Shakespeare',
-            'year': 1595,
-            'type' => 'paperback',
-            'pages' => 200,
-            'publisher' => 'PublisherA',
-            'language' => 'English',
-            'ISBN-10' => '1234567890',
-            'ISBN-13' => '123-1234567890'
+            'year': 1595
         }
     ]
 
 def getProductDetails(product_id):
-    status_code = flask.Response(status=200)
-    return status_code, [
+    return [
         {
-            'id' => product_id,
+            'id' : product_id,
             'author': 'William Shakespeare',
             'year': 1595,
-            'type' => 'paperback',
-            'pages' => 200,
-            'publisher' => 'PublisherA',
-            'language' => 'English',
-            'ISBN-10' => '1234567890',
-            'ISBN-13' => '123-1234567890'
+            'type' : 'paperback',
+            'pages' : 200,
+            'publisher' : 'PublisherA',
+            'language' : 'English',
+            'ISBN-10' : '1234567890',
+            'ISBN-13' : '123-1234567890',
+            'status_code' : 200
         }
     ]
+    
 
 #################################################################################
 
