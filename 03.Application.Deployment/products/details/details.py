@@ -155,16 +155,16 @@ def getForwardHeaders(request):
 
     return headers
 
-
+#################################################################################
 # UI
 @app.route('/')
 def front():
     return json.dumps(getProducts()), 200, {'Content-Type': 'application/json'}
 
 
-@app.route('/details/0')
+@app.route('/details')
 def details():
-    return make_response(jsonify(getProducts()), 200)
+    return make_response(jsonify(getProductDetails(0)), 200)
 
 
 @app.route('/health')
@@ -177,29 +177,6 @@ def health():
 def productsRoute():
     return json.dumps(getProducts()), 200, {'Content-Type': 'application/json'}
 
-
-@app.route('/api/v1/products/<product_id>')
-@trace()
-def productRoute(product_id):
-    headers = getForwardHeaders(request)
-    status, details = getProductDetails(product_id, headers)
-    return json.dumps(details), status, {'Content-Type': 'application/json'}
-
-
-@app.route('/api/v1/products/<product_id>/reviews')
-@trace()
-def reviewsRoute(product_id):
-    headers = getForwardHeaders(request)
-    status, reviews = getProductReviews(product_id, headers)
-    return json.dumps(reviews), status, {'Content-Type': 'application/json'}
-
-
-@app.route('/api/v1/products/<product_id>/ratings')
-@trace()
-def ratingsRoute(product_id):
-    headers = getForwardHeaders(request)
-    status, ratings = getProductRatings(product_id, headers)
-    return json.dumps(ratings), status, {'Content-Type': 'application/json'}
 
 
 #################################################################################
@@ -220,26 +197,21 @@ def getProducts():
         }
     ]
 
-
-def getProduct(product_id):
-    products = getProducts()
-    if product_id + 1 > len(products):
-        return None
-    else:
-        return products[product_id]
-
-
-def getProductDetails(product_id, headers):
-    try:
-        url = details['name'] + "/" + details['endpoint'] + "/" + str(product_id)
-        res = requests.get(url, headers=headers, timeout=3.0)
-    except BaseException:
-        res = None
-    if res and res.status_code == 200:
-        return 200, res.json()
-    else:
-        status = res.status_code if res is not None and res.status_code else 500
-        return status, {'error': 'Sorry, product details are currently unavailable for this book.'}
+def getProductDetails(product_id):
+    status_code = flask.Response(status=200)
+    return status_code, [
+        {
+            'id' => product_id,
+            'author': 'William Shakespeare',
+            'year': 1595,
+            'type' => 'paperback',
+            'pages' => 200,
+            'publisher' => 'PublisherA',
+            'language' => 'English',
+            'ISBN-10' => '1234567890',
+            'ISBN-13' => '123-1234567890'
+        }
+    ]
 
 #################################################################################
 
