@@ -288,8 +288,7 @@ def getProductDetails(product_id, headers):
         res = requests.get(url, headers=headers, timeout=3.0)
     except BaseException:
         res = None
-    # if res and res.status_code == 200:
-    if res:
+    if res and res.status_code == 200:
         return 200, res.json()
     else:
         status = res.status_code if res is not None and res.status_code else 500
