@@ -162,7 +162,7 @@ def front():
     return make_response(jsonify(getProducts()), 200)
 
 
-@app.route('/details')
+@app.route('/details/<product_id>')
 def details():
     return make_response(jsonify(getProductDetails(0)), 200)
 
