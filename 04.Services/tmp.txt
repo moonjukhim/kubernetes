@@ -32,6 +32,30 @@ spec:
 git clone https://github.com/moonjukhim/kubernetes.git
 
 kubectl exec "$(kubectl get pod -l app=ratings -o jsonpath='{.items[0].metadata.name}')" -c ratings -- curl -sS details:9080/details
+kubectl exec -it "$(kubectl get pod -l app=ratings -o jsonpath='{.items[0].metadata.name}')" -c ratings /bin/bash
 
-sudo docker build -t moonjukhim/productinfo-details-v6:1.0.9 .
-sudo docker push moonjukhim/productinfo-details-v6:1.0.9
+sudo docker build -t moonjukhim/productinfo-details-v1:1.0.0 .
+sudo docker push moonjukhim/productinfo-details-v1:1.0.0
+
+sudo docker build -t moonjukhim/productinfo-productpage-v1:1.0.0 .
+sudo docker push moonjukhim/productinfo-productpage-v1:1.0.0
+
+
+---
+# Nodejs
+
+```javascript
+const request = require('request');
+
+// Get 요청하기 http://www.google.com?id=1000
+const options = {
+    uri: "http://www.google.com",
+    qs:{
+        id:1000
+    }
+};
+
+request.get(options, function (error, response, body) {
+    //callback
+});
+```
