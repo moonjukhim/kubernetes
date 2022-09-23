@@ -1,0 +1,623 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Developing with EKS"
+
+Parameters:
+  EKSVpcCidr:
+    Type: String
+    Default: 10.10.0.0/16
+    AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(1[6-9]|2[0-8]))$
+
+  BastionHostSubnetCidr:
+    Type: String
+    Default: 10.10.32.0/19
+    AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(1[6-9]|2[0-8]))$
+
+  EksPublicSubnet1Cidr:
+    Type: String
+    Default: 10.10.64.0/19
+    AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(1[6-9]|2[0-8]))$
+
+  EksPublicSubnet2Cidr:
+    Type: String
+    Default: 10.10.96.0/19
+    AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(1[6-9]|2[0-8]))$
+
+  EksPublicSubnet3Cidr:
+    Type: String
+    Default: 10.10.128.0/19
+    AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(1[6-9]|2[0-8]))$
+
+  LatestAL2AmiId: # Locate latest Amazon Linux 2 AMI from public parameter store
+    Type: "AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>"
+    Default: "/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2"
+
+  KubernetesVersion:
+    Description: The Kubernetes version to deploy on the Amazon EKS cluster
+    Type: String
+    Default: "1.21"
+    AllowedValues:
+      - "1.21"
+      - "1.20"
+
+
+Resources:
+
+  # Start - Create VPC, subnets, internet gateway, and routes
+  EKSVpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref EKSVpcCidr
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      InstanceTenancy: default
+      Tags:
+        - Key: Name
+          Value: EKS VPC
+
+  BastionHostSubnet:
+    Type: AWS::EC2::Subnet
+    DependsOn:
+      - AttachGateway
+    Properties:
+      CidrBlock: !Ref BastionHostSubnetCidr
+      VpcId: !Ref EKSVpc
+      MapPublicIpOnLaunch: true
+      AvailabilityZone:
+        Fn::Select:
+          - 0
+          - Fn::GetAZs: ""
+      Tags:
+        - Key: Name
+          Value: !Sub Bastion Host Subnet - ${AWS::Region}a
+
+  EksPublicSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      CidrBlock: !Ref EksPublicSubnet1Cidr
+      VpcId: !Ref EKSVpc
+      MapPublicIpOnLaunch: true
+      AvailabilityZone:
+        Fn::Select:
+          - 0
+          - Fn::GetAZs: ""
+      Tags:
+        - Key: Name
+          Value: !Sub EKS Public Subnet 1 - ${AWS::Region}a
+
+  EksPublicSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      CidrBlock: !Ref EksPublicSubnet2Cidr
+      VpcId: !Ref EKSVpc
+      MapPublicIpOnLaunch: true
+      AvailabilityZone:
+        Fn::Select:
+          - 1
+          - Fn::GetAZs: ""
+      Tags:
+        - Key: Name
+          Value: !Sub EKS Public Subnet 2 - ${AWS::Region}b
+
+  EksPublicSubnet3:
+    Type: AWS::EC2::Subnet
+    Properties:
+      CidrBlock: !Ref EksPublicSubnet3Cidr
+      VpcId: !Ref EKSVpc
+      MapPublicIpOnLaunch: true
+      AvailabilityZone:
+        Fn::Select:
+          - 2
+          - Fn::GetAZs: ""
+      Tags:
+        - Key: Name
+          Value: !Sub EKS Public Subnet 3 - ${AWS::Region}c
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: Internet Gateway
+
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref EKSVpc
+      InternetGatewayId: !Ref InternetGateway
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    DependsOn:
+      - BastionHostSubnet
+    Properties:
+      VpcId: !Ref EKSVpc
+
+  BastionHostSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    DependsOn:
+      - PublicRoute
+    Properties:
+      SubnetId: !Ref BastionHostSubnet
+      RouteTableId: !Ref PublicRouteTable
+
+  EksPublicSubnet1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref EksPublicSubnet1
+      RouteTableId: !Ref PublicRouteTable
+
+  EksPublicSubnet2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref EksPublicSubnet2
+      RouteTableId: !Ref PublicRouteTable
+
+  EksPublicSubnet3RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref EksPublicSubnet3
+      RouteTableId: !Ref PublicRouteTable
+
+  PublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: AttachGateway
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  BastionHostEip:
+    Type: AWS::EC2::EIP
+    Properties:
+      InstanceId: !Ref BastionHost
+  # End - Create VPC, subnets (bastion host, EKS public and private), internet gateway, and routes
+
+  #Start - Create security groups
+  BastionHostSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: Bastion host access
+      GroupDescription: Network access rules applied to the bastion host
+      VpcId: !Ref EKSVpc
+      SecurityGroupEgress:
+        - IpProtocol: tcp
+          CidrIp: 0.0.0.0/0
+          FromPort: 80
+          ToPort: 80
+          Description: Allow HTTP connections to anywhere for downloading files
+        - IpProtocol: tcp
+          CidrIp: 0.0.0.0/0
+          FromPort: 443
+          ToPort: 443
+          Description: Allow HTTPS connections to anywhere for downloading files
+        - IpProtocol: tcp
+          CidrIp: !Ref EksPublicSubnet1Cidr
+          FromPort: 0
+          ToPort: 65535
+          Description: Allow connections to EKS Public Subnet 1 on any port
+        - IpProtocol: tcp
+          CidrIp: !Ref EksPublicSubnet2Cidr
+          FromPort: 0
+          ToPort: 65535
+          Description: Allow connections to EKS Public Subnet 2 on any port
+        - IpProtocol: tcp
+          CidrIp: !Ref EksPublicSubnet3Cidr
+          FromPort: 0
+          ToPort: 65535
+          Description: Allow connections to EKS Public Subnet 3 on any port
+        - IpProtocol: tcp
+          CidrIp: 0.0.0.0/0
+          FromPort: 22
+          ToPort: 22
+          Description: Allow SSH connections to anywhere for CodeCommit 
+
+  ControlPlaneSecurityGroup: # Rules are populated automatically when the cluster is created
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: EKS control plane access
+      GroupDescription: Cluster communication with worker nodes
+      VpcId: !Ref EKSVpc
+      SecurityGroupIngress:
+        # Allow inbound traffic from the bastion host security group on any port
+        - IpProtocol: "-1"
+          SourceSecurityGroupId: !Ref BastionHostSecurityGroup
+          Description: Allow connections from bastion host subnet on any port
+        - IpProtocol: "-1"
+          CidrIp: !Ref EksPublicSubnet1Cidr
+          Description: Allow connections from EKS Public Subnet 1 on any port
+        - IpProtocol: "-1"
+          CidrIp: !Ref EksPublicSubnet2Cidr
+          Description: Allow connections from EKS Public Subnet 2 on any port
+        - IpProtocol: "-1"
+          CidrIp: !Ref EksPublicSubnet3Cidr
+          Description: Allow connections from EKS Public Subnet 3 on any port
+  # End - Create security groups
+
+  # Start - Create bastion host IAM instance profile.
+  BastionHostInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    DeletionPolicy: Delete
+    Properties:
+      InstanceProfileName: BastionHostIamInstanceProfile
+      Roles:
+        - !Ref BastionHostIamRole
+
+  BastionHostIamRole:
+    Type: AWS::IAM::Role
+    DeletionPolicy: Delete
+    Properties:
+      RoleName: BastionHostIamRole
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Action:
+              - sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/ReadOnlyAccess
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+      Policies:
+        - PolicyName: ResumeSession
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Resource: "*"
+                Effect: Allow
+                Action:
+                  - ssm:ResumeSession
+        - PolicyName: codeCommitBranch
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Resource: "*"
+                Effect: Allow
+                Action:
+                  - codecommit:UpdateDefaultBranch
+                  - codecommit:CreateBranch
+        - PolicyName: sshKeys
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Resource: "*"
+                Effect: Allow
+                Action:
+                  - iam:UploadSSHPublicKey
+                  - iam:GetSSHPublicKey
+                  - iam:DeleteSSHPublicKey
+                  - iam:UpdateSSHPublicKey
+
+  BastionHostBuildPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: BastionHostBuildPolicy
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          # Allow bastion host to assume BastionHostIamRole role
+          - Effect: Allow
+            Action:
+              - sts:AssumeRole
+            Resource:
+              - !GetAtt BastionHostIamRole.Arn
+          - Effect: Allow
+            Action:
+              - autoscaling:AttachInstances
+              - autoscaling:AttachLoadBalancerTargetGroups
+              - autoscaling:AttachLoadBalancers
+              - autoscaling:CreateAutoScalingGroup
+              - autoscaling:CreateLaunchConfiguration
+              - autoscaling:CreateOrUpdateTags
+              - autoscaling:SetDesiredCapacity
+              - autoscaling:UpdateAutoScalingGroup
+              - cloudformation:CreateStack
+              - ec2:AllocateAddress
+              - ec2:AuthorizeSecurityGroupEgress
+              - ec2:AuthorizeSecurityGroupIngress
+              - ec2:CreateLaunchTemplate
+              - ec2:CreateSecurityGroup
+              - ec2:CreateTags
+              - ec2:ModifySubnetAttribute
+              - ec2:ModifyVpcAttribute
+              - ec2:RunInstances
+              - eks:CreateCluster
+              - eks:CreateNodegroup
+              - eks:TagResource
+              - eks:UpdateClusterConfig
+              - eks:UpdateNodegroupConfig
+              - iam:AddRoleToInstanceProfile
+              - iam:AttachRolePolicy
+              - iam:CreateServiceLinkedRole
+              - iam:DeleteRolePolicy
+              - iam:PassRole
+              - ssm:GetParameter
+            Resource: "*"
+            #added condition to prevent privilege escalation
+            Condition:
+              StringNotEquals:
+                aws:username: awsstudent
+          - Effect: Allow
+            Action:
+              - iam:CreateRole
+            Resource: !Sub arn:aws:iam::${AWS::AccountId}:role/eksctl-dev-cluster*
+          - Effect: Allow
+            Action:
+              - ssm:UpdateDocument*
+              - ssm:CreateDocument*
+              - ssm:DeleteDocument*
+            Resource: !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:document/SSM-SessionManagerRunShell
+      Roles:
+        - !Ref BastionHostIamRole
+  # End - Create bastion host IAM instance profile
+
+  # Start - Create EKS IAM roles
+  EksClusterRole:
+    Type: AWS::IAM::Role
+    DeletionPolicy: Delete
+    Properties:
+      RoleName: EksClusterRole
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - eks.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonEKSClusterPolicy
+        - arn:aws:iam::aws:policy/ReadOnlyAccess
+
+  EksNodeInstanceRole:
+    Type: AWS::IAM::Role
+    DeletionPolicy: Delete
+    Properties:
+      RoleName: EksNodeRole
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy
+        - arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy
+        - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+  # End - Create EKS IAM roles
+
+  # Start - Create bastion host
+  BastionHost:
+    Type: AWS::EC2::Instance
+    Metadata:
+      AWS::CloudFormation::Init:
+        configSets:
+          InstallTools:
+            - "update-yum"
+            - "install-python3"
+            - "create-kube-directory"
+            - "install-aws-cli-v2"
+            - "install-kubectl"
+            - "install-eksctl"
+            - "install-other-tools"
+            - "install-helm"
+            - "install-docker"
+          IncreaseSessionMgrTimeout:
+            - "inc-session-timeout"
+          EksctlCreateCluster:
+            - "create-cluster-config"
+            - "create-eks-cluster"
+          CreateSsmUser:
+            - "create-ssm-user"
+          ChangeDirectoryOwner:
+            - "change-ssm-user-directory-owner"
+          # CreateUrlencodeScript:
+          #   - "create-urlencode-script"
+          ModifyInstancePermissions:
+            - "remove-lab-build-policy"
+        # Start - InstallTools config set commands
+        update-yum:
+          commands:
+            update-yum:
+              command: yum update -y
+              ignoreErrors: false
+        install-python3:
+          commands:
+            install-python3:
+              command: yum install -y python3
+              ignoreErrors: false
+        create-kube-directory:
+          commands:
+            a-create-kube-directory:
+              command: mkdir -p /home/ssm-user/.kube
+              ignoreErrors: false
+        install-aws-cli-v2:
+          commands:
+            a-remove-aws-cli-v1:
+              command: rm -rf /usr/bin/aws
+              ignoreErrors: false
+            #NOTE: AWS CLI version was hardcoded to avoid a Kubeconfig error that was introduced in v2.6.3. This should be changed to LATEST once the issue is fixed.
+            b-download-aws-cli-v2:
+              command: curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64-2.7.6.zip" -o "awscliv2.zip"
+              ignoreErrors: false
+            c-unzip-package:
+              command: unzip awscliv2.zip
+              ignoreErrors: false
+            d-install-aws-cli-v2:
+              command: sudo ./aws/install -b
+              ignoreErrors: false
+        install-kubectl:
+          commands:
+            a-download-kubeconfig:
+              command: curl -LO https://amazon-eks.s3.us-west-2.amazonaws.com/1.21.2/2021-07-05/bin/linux/amd64/kubectl
+              ignoreErrors: false
+            b-make-executable:
+              command: chmod +x ./kubectl
+              ignoreErrors: false
+            c-set-path:
+              command: mkdir -p $HOME/bin && cp ./kubectl $HOME/bin/kubectl && export PATH=$PATH:$HOME/bin
+              ignoreErrors: false
+            d-export-path:
+              command: echo 'export PATH=$PATH:$HOME/bin' >> ~/.bashrc
+              ignoreErrors: false
+        install-eksctl:
+          commands:
+            a-download-eksctl:
+              command: curl --silent --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
+            b-move-to-bin:
+              command: mv /tmp/eksctl /usr/local/bin
+              ignoreErrors: false
+        install-other-tools:
+          commands:
+            a-install-tools:
+              command: yum -y install jq gettext bash-completion git
+              ignoreErrors: false
+        install-helm:
+          commands:
+            install-helm:
+              command: curl -sSL https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
+              ignoreErrors: false
+        install-docker:
+          commands:
+            a-install-docker:
+              command: amazon-linux-extras install docker
+              ignoreErrors: false
+            b-start-docker-service:
+              command: service docker start
+              ignoreErrors: false
+        # install-flux:
+        #    commands:
+        #      a-install-flux:
+        #        command: kubectl apply -f https://raw.githubusercontent.com/fluxcd/helm-operator/master/deploy/crds.yaml
+        #        ignoreErrors: false
+        # Increase the timeout for Session Mgr
+        inc-session-timeout:
+          files:
+            /temp/ssm-settings.yaml:
+              content: |
+                inputs:
+                  s3BucketName: ""
+                  s3KeyPrefix: ""
+                  s3EncryptionEnabled: true
+                  cloudWatchLogGroupName: ""
+                  cloudWatchEncryptionEnabled: true
+                  idleSessionTimeout: "60"
+                  cloudWatchStreamingEnabled: true
+                  kmsKeyId: ""
+                  runAsEnabled: false
+                  runAsDefaultUser: ""
+                  shellProfile:
+                    linux: cd $HOME; pwd
+                schemaVersion: "1.0"
+                description: Lab document to modify Session Manager idle timeout and runas user.
+                sessionType: Standard_Stream
+          commands:
+            a-create-ssm-document:
+              command: aws ssm create-document --name "SSM-SessionManagerRunShell" --content "file:///temp/ssm-settings.yaml" --document-format YAML --document-type Session
+              ignoreErrors: true
+            b-configure-ssm:
+              command: aws ssm update-document --name "SSM-SessionManagerRunShell" --content "file:///temp/ssm-settings.yaml" --document-format YAML --document-version '$LATEST'
+              ignoreErrors: true
+        # Start - EksctlCreateCluster config set commands
+        create-cluster-config:
+          files:
+            /home/ssm-user/scripts/cluster.yaml:
+              content: !Sub |
+                apiVersion: eksctl.io/v1alpha5
+                kind: ClusterConfig
+                metadata:
+                  name: dev-cluster
+                  region: ${AWS::Region}
+                  version: "${KubernetesVersion}"
+                vpc:
+                  id: ${EKSVpc}
+                  securityGroup: "${ControlPlaneSecurityGroup}"
+                  subnets:
+                    public:
+                      ${AWS::Region}a: { id: ${EksPublicSubnet1} }
+                      ${AWS::Region}b: { id: ${EksPublicSubnet2} }
+                      ${AWS::Region}c: { id: ${EksPublicSubnet3} }
+                  clusterEndpoints:
+                    publicAccess: true
+                    privateAccess: true
+                iam:
+                  serviceRoleARN: "${EksClusterRole.Arn}"
+                managedNodeGroups:
+                  - name: dev-nodes
+                    minSize: 2
+                    maxSize: 4
+                    desiredCapacity: 3
+                    volumeSize: 20
+                    instanceType: t3.medium
+                    iam:
+                      instanceRoleARN: ${EksNodeInstanceRole.Arn}
+        create-eks-cluster:
+          commands:
+            eksctl-create-cluster:
+              command: eksctl create cluster -f /home/ssm-user/scripts/cluster.yaml --kubeconfig /home/ssm-user/.kube/config
+              ignoreErrors: false
+        # Start - Create ssm-user and assign as sudoer
+        create-ssm-user:
+          commands:
+            a-create-ssm-user:
+              command: if id -u "ssm-user" >/dev/null 2>&1; then echo 'ssm-user already exists'; else useradd ssm-user -m -U; fi
+              ignoreErrors: true
+            b-make-ssm-user-sudoer:
+              command: echo "ssm-user  ALL=(ALL) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/ssm-user
+              ignoreErrors: true
+        # Start - Change ownership of ssm-user home directory and all sub-directories
+        change-ssm-user-directory-owner:
+          commands:
+            a-set-owner-ssm-user:
+              command: chown -R ssm-user /home/ssm-user
+              ignoreErrors: true
+            b-lab-dir-access:
+              command: chmod 777 /lab
+              ignoreErrors: true
+        remove-lab-build-policy:
+          commands:
+            remove-lab-build-policy:
+              command: !Sub /usr/local/bin/aws iam delete-role-policy --role-name ${BastionHostIamRole} --policy-name BastionHostBuildPolicy
+    Properties:
+      ImageId: !Ref LatestAL2AmiId
+      InstanceType: t3.micro
+      IamInstanceProfile: !Ref BastionHostInstanceProfile
+      Tags:
+        - Key: Name
+          Value: Bastion Host
+      InstanceInitiatedShutdownBehavior: terminate
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: 8
+            DeleteOnTermination: true
+            VolumeType: gp2
+      NetworkInterfaces:
+        - AssociatePublicIpAddress: true
+          DeviceIndex: "0"
+          GroupSet:
+            - !Ref BastionHostSecurityGroup
+          SubnetId: !Ref BastionHostSubnet
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          yum update -y aws-cfn-bootstrap
+          /opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource BastionHost --configsets InstallTools,IncreaseSessionMgrTimeout,EksctlCreateCluster,CreateSsmUser,ChangeDirectoryOwner,ModifyInstancePermissions --region ${AWS::Region}
+          /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource BastionHost --region ${AWS::Region}
+    CreationPolicy:
+      ResourceSignal:
+        Count: '1'
+        Timeout: PT45M
+  # End - Create bastion host
+
+
+Outputs:
+  AwsRegion:
+    Description: The AWS Region that the lab is running in
+    Value: !Ref AWS::Region
+
